@@ -41,7 +41,7 @@ class PythiaMiner(openminers.BasePromptingMiner):
             "--pythia.max_new_tokens",
             type=int,
             help="Max tokens for model output.",
-            default=64,
+            default=80,
         )
         parser.add_argument(
             "--pythia.temperature",
@@ -82,7 +82,7 @@ class PythiaMiner(openminers.BasePromptingMiner):
             self.model = self.model.to(self.config.pythia.device)
 
     def _process_history(self, history: List[str]) -> str:
-        processed_history = ""
+        processed_history = "<|im_start|>system\n A conversation between a user and an LLM-based AI assistant. The assistant gives helpful and honest answers.<|im_end|>"
         if self.config.pythia.do_prompt_injection:
             processed_history += self.config.pythia.system_prompt
         for message in history:
@@ -92,12 +92,12 @@ class PythiaMiner(openminers.BasePromptingMiner):
             if message["role"] == "assistant":
                 processed_history += "<bot>: " + message["content"].strip() + "\n"
             if message["role"] == "user":
-                processed_history += "<human>: " + message["content"].strip() + "\n"
+                processed_history += "\n<|im_start|>user " + message["content"].strip() + "<|im_end|>"
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
         history = self._process_history(messages)
-        prompt = history + "<bot>:"
+        prompt = history + "\n<|im_start|>assistant"
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(
             self.config.pythia.device
         )
